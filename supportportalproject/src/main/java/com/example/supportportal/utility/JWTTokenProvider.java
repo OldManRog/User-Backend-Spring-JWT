@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @Component
 public class JWTTokenProvider {
 
-    String secret = "secret";
+    String secret = "secret"; //THE SECRET KEY SHOULD BE IN A DIFFERENT FILE THAT WE CAN CALL FROM. THIS IS ONLY FOR EASE OF DEVELOPMENT AND TESTING
 
     /** This will be called at login **/
     public String generateJwtToken(UserPrincipal userPrincipal){

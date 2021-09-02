@@ -8,11 +8,13 @@ import com.example.supportportal.exceptions.domain.EmailNotFoundException;
 import com.example.supportportal.exceptions.domain.UserNotFoundException;
 import com.example.supportportal.exceptions.domain.UsernameExistException;
 import com.example.supportportal.repository.UserRepository;
+import com.example.supportportal.services.LoginAttemptService;
 import com.example.supportportal.services.UserService;
 import com.example.supportportal.utility.JWTTokenProvider;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +34,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
 import static com.example.supportportal.constant.SecurityConstant.JWT_TOKEN_HEADER;
 import static com.example.supportportal.constant.UserServiceImpConstants.*;
@@ -46,11 +49,13 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final JWTTokenProvider jwtTokenProvider;
+    private final LoginAttemptService loginAttemptService;
 
 
     /**
      * Used to load user for Spring web security to check against
      **/
+    @SneakyThrows
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findUserByUsername(username); //JPSQL to fetch username
@@ -58,12 +63,21 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
             log.error("Username {} does not exist", username);
             throw new UsernameNotFoundException(USER_DOES_NOT_EXIST);
         } else {
+            validateLoginAttempt(user);
             user.setLastLoginDateDisplay(user.getLastLoginDate());
             user.setLastLoginDate(new Date());
             userRepository.save(user);
             UserPrincipal userPrincipal = new UserPrincipal(user);
             log.info("Returning found user by username {}", username);
             return userPrincipal;
+        }
+    }
+
+    private void validateLoginAttempt(User user) throws ExecutionException {
+        if(user.isNotLocked()) {
+            user.setNotLocked(!loginAttemptService.hasExceededMaxAttempt(user.getUsername()));
+        } else {
+            loginAttemptService.evictUserFromLoginAttemptCache(user.getUsername());
         }
     }
 
@@ -82,13 +96,13 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
         user.setJoinedDate(new Date());
         user.setActive(true);
         user.setNotLocked(true);
-        user.setRole(Role.ROLE_USER.name());
-        user.setAuthorities(Role.ROLE_USER.getAuthorities());
-        String password = generatePassword();
-        String encodedPassword = encodePassword(password);
-        user.setPassword(encodedPassword);
+        user.setRole(Role.ROLE_USER.name()); //Sets the Role
+        user.setAuthorities(Role.ROLE_USER.getAuthorities()); //Sets the authorities from the enum of the role
+        String password = generatePassword(); //calls the method to generate password and returns password
+        String encodedPassword = encodePassword(password); //encodes the password and returns an encoded password
+        user.setPassword(encodedPassword); // we'll set the encoded password as the password
         user.setProfileImageUrl(getTemporaryProfileImageUrl());
-        log.info("New User Password {} ", password);
+        log.info("New User Password {} ", password); //SHOULD NOT LEAVE THIS HERE - ONLY FOR DEBUGGING
         return userRepository.save(user);
     }
 

@@ -21,7 +21,7 @@ public class LoginAttemptService {
 
     private static final int MAXIMUM_NUMBER_OF_ATTEMPTS = 5;
     private static final int ATTEMPT_INCREMENT = 1;
-    private LoadingCache<String, Integer> loginAttemptCache;
+    private final LoadingCache<String, Integer> loginAttemptCache;
 
     /**
      * We are initializing the cache with the specific configuration that we need
