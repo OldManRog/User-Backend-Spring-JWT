@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.*;
 
+import javax.mail.MessagingException;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.OK;
@@ -32,7 +33,7 @@ public class UserResource extends ExceptionHandling {
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) throws UserNotFoundException, EmailExistException, UsernameExistException {
+    public ResponseEntity<User> register(@RequestBody User user) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException {
        return ResponseEntity.ok(userService.register(user.getFirstName(),user.getLastName(),user.getUsername(),user.getEmail()));
     }
 
@@ -61,7 +62,8 @@ public class UserResource extends ExceptionHandling {
         return ResponseEntity.ok(userService.findByUsername(user.getUsername()));
     }
 
-    public void authenticate (String username, String password) {
+
+    private void authenticate (String username, String password) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username,password));
     }
 
