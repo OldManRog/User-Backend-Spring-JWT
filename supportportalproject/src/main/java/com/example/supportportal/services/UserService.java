@@ -6,6 +6,7 @@ import com.example.supportportal.domain.UserPrincipal;
 import com.example.supportportal.exceptions.domain.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
@@ -36,12 +37,12 @@ public interface UserService {
     /**
      * User can add a new user.
      **/
-    User addNewUser(String firstName, String lastName, String userName, String email, String role, boolean isNonLocked, boolean isActive, Multipart profileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException;
+    User addNewUser(String firstName, String lastName, String userName, String email, String role, boolean isNonLocked, boolean isActive, MultipartFile profileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException;
 
     /**
      * User can update their data by changing their username
      **/
-    User updateUser(String currentUsername, String newFirstname, String newLastName, String newUserName, String newEmail, String newRole, boolean isNonLocked, boolean isActive, Multipart profileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, NullValuesException, MessagingException, IOException;
+    User updateUser(String currentUsername, String newFirstname, String newLastName, String newUserName, String newEmail, String newRole, boolean isNonLocked, boolean isActive, MultipartFile profileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, NullValuesException, MessagingException, IOException;
 
     /**
      * User can delete themselves or another user can delete them
@@ -56,7 +57,7 @@ public interface UserService {
     /**
      * User can update ONLY their image
      **/
-    User updateProfileImage(String username,Multipart newProfileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException;
+    User updateProfileImage(String username,MultipartFile newProfileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException;
 
     /**
      * This is a JWT provider method

@@ -14,6 +14,10 @@ public class AuthenticationSuccessListener {
 
     private final LoginAttemptService loginAttemptService;
 
+    /**
+     This listener will remove user from cache if login is sucesss
+     **/
+
     @EventListener
     public void onAuthenticationSuccess(AuthenticationSuccessEvent event) {
         Object principal = event.getAuthentication().getPrincipal(); //getPrincipal returns an object

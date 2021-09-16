@@ -22,6 +22,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.mail.MessagingException;
@@ -97,8 +98,12 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
         return userRepository.save(user);
     }
 
+    /**
+     * Used for add new user API call
+     **/
+
     @Override
-    public User addNewUser(String firstName, String lastName, String userName, String email, String role, boolean isNonLocked, boolean isActive, Multipart profileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException {
+    public User addNewUser(String firstName, String lastName, String userName, String email, String role, boolean isNonLocked, boolean isActive, MultipartFile profileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException {
         User newUser = setDataForUser(null, firstName, lastName, userName, email, role, isNonLocked, isActive, false, false, true);
         String password = generatePassword(); //calls the method to generate password and returns password
         assert newUser != null;
@@ -109,8 +114,12 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
         return newUser;
     }
 
+    /**
+     * Used for update user API call
+     **/
+
     @Override
-    public User updateUser(String currentUsername, String newFirstname, String newLastName, String newUserName, String newEmail, String newRole, boolean isNonLocked, boolean isActive, Multipart profileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException {
+    public User updateUser(String currentUsername, String newFirstname, String newLastName, String newUserName, String newEmail, String newRole, boolean isNonLocked, boolean isActive, MultipartFile profileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException {
         User currentUser = setDataForUser(currentUsername, newFirstname, newLastName, newUserName, newEmail, newRole, isNonLocked, isActive, false, true, false);
         assert currentUser != null;
         userRepository.save(currentUser);
@@ -126,6 +135,7 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
     public List<User> getUsers() {
         return userRepository.findAll();
     }
+
 
     /**
      * Used for API call to get user by username
@@ -151,6 +161,9 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
         return user;
     }
 
+    /**
+     * Used for delete API call
+     **/
 
     @Override
     public void deleteUser(Long id) throws UserNotFoundException {
@@ -160,6 +173,10 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
             userRepository.deleteById(id);
         }
     }
+
+    /**
+     * Used for Reset password API call
+     **/
 
     @Override
     public void resetPassword(String email) throws EmailNotFoundException, MessagingException {
@@ -173,8 +190,12 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
         emailService.sendNewPasswordEmail(user.getFirstName(), pass, user.getEmail());
     }
 
+    /**
+     * Used for update profile image API call
+     **/
+
     @Override
-    public User updateProfileImage(String username, Multipart newProfileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException {
+    public User updateProfileImage(String username, MultipartFile newProfileImage) throws UserNotFoundException, EmailExistException, UsernameExistException, MessagingException, IOException {
         User user = validateNewUsernameAndEmail(username, null, null);
         saveProfileImage(user, newProfileImage);
         return user;
@@ -183,26 +204,11 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
     // ------ THIS IS THE START OF HELPER METHODS FOR THE SERVICE IMPLEMENTATION -------  //
 
     /**
-     * This method sets the data for the user depending on if registering, adding a new user, or updating
+     * This method sets the data for the user based on if registering, adding a new user, or updating
      **/
 
     private User setDataForUser(String currentUsername, String firstname, String lastName, String userName, String email, String role, boolean isNonLocked, boolean isActive, boolean registerFirstTime, boolean updating, boolean addingNewUser) throws UserNotFoundException, EmailExistException, UsernameExistException {
-        if (registerFirstTime) {
-            validateNewUsernameAndEmail(StringUtils.EMPTY, userName, email);
-            User registeredUser = new User();
-            registeredUser.setUserID(generateUserId());
-            registeredUser.setFirstName(firstname);
-            registeredUser.setLastName(lastName);
-            registeredUser.setUsername(userName);
-            registeredUser.setEmail(email);
-            registeredUser.setJoinedDate(new Date());
-            registeredUser.setActive(isActive);
-            registeredUser.setNotLocked(isNonLocked);
-            registeredUser.setRole(Role.ROLE_USER.name()); //Sets the Role
-            registeredUser.setAuthorities(Role.ROLE_USER.getAuthorities()); //Sets the authorities from the enum of the role
-            registeredUser.setProfileImageUrl(getTemporaryProfileImageUrl(userName));
-            return registeredUser;
-        } else if (addingNewUser) {
+        if (addingNewUser || registerFirstTime) {
             validateNewUsernameAndEmail(StringUtils.EMPTY, userName, email);
             User newUser = new User();
             newUser.setUserID(generateUserId());
@@ -213,8 +219,15 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
             newUser.setJoinedDate(new Date());
             newUser.setActive(isActive);
             newUser.setNotLocked(isNonLocked);
-            newUser.setRole(getRoleEnumName(role).name()); //Sets the Role
-            newUser.setAuthorities(getRoleEnumName(role).getAuthorities()); //Sets the authorities from the enum of the role
+            if (addingNewUser) {
+                newUser.setRole(getRoleEnumName(role).name()); //Sets the Role
+                newUser.setAuthorities(getRoleEnumName(role).getAuthorities()); //Sets the authorities from the enum of the role
+
+            } else {
+                newUser.setRole(Role.ROLE_USER.name()); //Sets the Role
+                newUser.setAuthorities(Role.ROLE_USER.getAuthorities()); //Sets the authorities from the enum of the role
+
+            }
             newUser.setProfileImageUrl(getTemporaryProfileImageUrl(userName));
             return newUser;
         } else if (updating) {
@@ -237,7 +250,7 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
     /**
      * Used by addUser API Method to save the profile image
      **/
-    private void saveProfileImage(User user, Multipart profileImage) throws IOException, MessagingException {
+    private void saveProfileImage(User user, MultipartFile profileImage) throws IOException, MessagingException {
         if (profileImage != null) { // user/home/supportportal/user/rick
             Path userFolder = Paths.get(USER_FOLDER + user.getUsername()).toAbsolutePath().normalize();
             if (!Files.exists(userFolder)) {
@@ -245,7 +258,7 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
                 log.info(DIRECTORY_CREATED + userFolder);
             }
             Files.deleteIfExists(Paths.get(userFolder + user.getUsername() + DOT + JPG_EXTENSION));
-            Files.copy(profileImage.getParent().getInputStream(), userFolder.resolve(user.getUsername() + DOT + JPG_EXTENSION), REPLACE_EXISTING);
+            Files.copy(profileImage.getInputStream(), userFolder.resolve(user.getUsername() + DOT + JPG_EXTENSION), REPLACE_EXISTING);
             user.setProfileImageUrl(setProfileImageUrl(user.getUsername()));
             userRepository.save(user);
         }
@@ -254,6 +267,13 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
 
     private String setProfileImageUrl(String username) {
         return ServletUriComponentsBuilder.fromCurrentContextPath().path(USER_IMAGE_PATH + username + FORWARD_SLASH + username + DOT + JPG_EXTENSION).toUriString();
+    }
+
+    /**
+     * Used to generate temp profile image URL for Register API call
+     */
+    private String getTemporaryProfileImageUrl(String userName) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath().path(DEFAULT_USER_IMAGE_PATH + userName).toUriString();
     }
 
     /**
@@ -288,12 +308,6 @@ public class UserServiceImplementation implements UserService, UserDetailsServic
         return headers;
     }
 
-    /**
-     * Used to generate temp profile image URL for Register API call
-     */
-    private String getTemporaryProfileImageUrl(String userName) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath().path(DEFAULT_USER_IMAGE_PATH + userName).toUriString();
-    }
 
     /**
      * Used to encode password for password generator for Register API call

@@ -14,6 +14,9 @@ public class AuthenticationFailureListener {
 
     private final LoginAttemptService loginAttemptService;
 
+    /**
+     This listener will add user to cache if login is failure
+     **/
 
     @EventListener
     public void onAuthenticationFailure(AuthenticationFailureBadCredentialsEvent event) throws ExecutionException {
